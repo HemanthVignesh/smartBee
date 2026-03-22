@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+env/
+ENV/
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Token / credentials (keep credentials.json template but ignore token)
+token.pickle
+token.json
+app/config/token.pickle
+app/config/token.json
+
+# Logs
+*.log
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Vite
+*.local
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+credentials.json
+smart_bee_backend_starter/credentials.json
