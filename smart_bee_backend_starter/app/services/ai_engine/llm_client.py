@@ -9,12 +9,13 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    """OpenAI client for Smart BEE"""
+    """OpenAI client for Smart BEE (v1.x compat)"""
     
     def __init__(self):
         if settings.OPENAI_API_KEY:
-            openai.api_key = settings.OPENAI_API_KEY
+            self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
         else:
+            self.client = None
             logger.warning("OpenAI API key not configured")
     
     def generate_completion(
@@ -23,8 +24,8 @@ class LLMClient:
         system_prompt: Optional[str] = None,
         max_tokens: int = 500
     ) -> str:
-        """Generate completion using OpenAI"""
-        if not settings.OPENAI_API_KEY:
+        """Generate completion using OpenAI Chat Completions"""
+        if not self.client:
             return "OpenAI API key not configured"
         
         messages = []
@@ -35,7 +36,7 @@ class LLMClient:
         messages.append({"role": "user", "content": prompt})
         
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=settings.OPENAI_MODEL,
                 messages=messages,
                 max_tokens=max_tokens,

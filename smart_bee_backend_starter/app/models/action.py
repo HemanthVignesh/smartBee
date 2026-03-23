@@ -11,7 +11,8 @@ class SuggestedAction(Base):
     decision_id = Column(String, ForeignKey("decisions.id"))
     action_type = Column(String)
     payload = Column(JSON)
-    status = Column(String, default="pending")
+    status = Column(String, default="pending") # pending, scheduled, executed, failed, rejected
+    scheduled_at = Column(DateTime, nullable=True)
 
     created_at = Column(
         DateTime,

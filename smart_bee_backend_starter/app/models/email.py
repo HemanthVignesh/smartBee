@@ -18,4 +18,5 @@ class Email(Base):
     processed = Column(Boolean, default=False)
 
     decisions = relationship("Decision", back_populates="email")
+    analysis = relationship("EmailAnalysis", back_populates="email", uselist=False)
 

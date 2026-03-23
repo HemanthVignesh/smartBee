@@ -85,22 +85,6 @@ def get_all_emails(
     return emails
 
 
-@router.get("/{email_id}", response_model=EmailResponse)
-def get_email_by_id(
-    email_id: int,
-    db: Session = Depends(get_db)
-):
-    """
-    Get a specific email by ID
-    """
-    email = db.query(Email).filter(Email.id == email_id).first()
-    
-    if not email:
-        raise HTTPException(status_code=404, detail="Email not found")
-    
-    return email
-
-
 @router.get("/search/", response_model=List[EmailResponse])
 def search_emails(
     query: str = Query(..., min_length=1),
@@ -115,6 +99,22 @@ def search_emails(
     ).order_by(Email.received_at.desc()).limit(limit).all()
     
     return emails
+
+
+@router.get("/{email_id}", response_model=EmailResponse)
+def get_email_by_id(
+    email_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get a specific email by ID
+    """
+    email = db.query(Email).filter(Email.id == email_id).first()
+    
+    if not email:
+        raise HTTPException(status_code=404, detail="Email not found")
+    
+    return email
 
 
 @router.get("/gmail/profile")
@@ -141,7 +141,7 @@ def get_gmail_profile():
 
 @router.post("/{email_id}/process")
 def process_email(
-    email_id: int,
+    email_id: str,
     db: Session = Depends(get_db)
 ):
     """
@@ -154,6 +154,10 @@ def process_email(
     
     # Mark as processed
     email.processed = True
+    
+    from app.services.audit_service import log_action
+    log_action(db, "email", str(email_id), "process", "success")
+    
     db.commit()
     
     return {

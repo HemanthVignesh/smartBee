@@ -27,8 +27,8 @@ class GmailService:
     
     def __init__(
         self, 
-        creds_path: str = "/Users/hemanthvignesh/Desktop/SmartBeee/smart_bee_backend_starter/credentials.json", 
-        token_path: str = "/Users/hemanthvignesh/Desktop/SmartBeee/smart_bee_backend_starter/token.pickle"
+        creds_path: str = settings.GMAIL_CREDENTIALS_FILE, 
+        token_path: str = settings.GMAIL_TOKEN_FILE
     ):
         self.creds_path = creds_path
         self.token_path = token_path

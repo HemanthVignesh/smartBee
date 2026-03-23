@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Float, Text, DateTime, JSON, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
 
@@ -15,3 +16,5 @@ class EmailAnalysis(Base):
     summary = Column(Text)
     entities = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    email = relationship("Email", back_populates="analysis")

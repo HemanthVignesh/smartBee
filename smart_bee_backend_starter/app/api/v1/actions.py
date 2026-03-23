@@ -33,15 +33,35 @@ def submit_feedback(
     feedback_type = feedback.feedback_type.lower().strip()
     action_type = action.action_type.lower().strip()
 
+    # Prevent double execution
+    if action.status == "executed" and feedback_type == "accepted":
+        return {
+            "message": "Action already executed",
+            "status": action.status,
+            "execution_metadata": action.execution_metadata
+        }
+
     # -------- ACCEPT --------
     if feedback_type == "accepted":
-
         if action_type == "create_calendar_event":
-            # 🔥 EXECUTE CALENDAR EVENT
-            result = create_calendar_event(action.payload)
-
+            try:
+                # 🔥 EXECUTE CALENDAR EVENT
+                result = create_calendar_event(action.payload)
+                action.status = "executed"
+                action.execution_metadata = result
+            except Exception as e:
+                action.status = "failed"
+                action.execution_metadata = {"error": str(e)}
+                raise HTTPException(status_code=500, detail=f"Calendar execution failed: {str(e)}")
+        
+        elif action_type == "generate_reply":
+            # Store the first reply as the selected one (or use index if provided in payload)
+            selected_reply = action.payload.get("replies", ["No reply generated"])[0]
             action.status = "executed"
-            action.execution_metadata = result
+            action.execution_metadata = {
+                "selected_reply": selected_reply
+            }
+        
         else:
             action.status = "accepted"
 
@@ -51,23 +71,27 @@ def submit_feedback(
 
     else:
         raise HTTPException(status_code=400, detail="Invalid feedback type")
-    if feedback.feedback_type == "accepted":
 
-        if action.action_type == "generate_reply":
-            action.status = "executed"
-            action.execution_metadata = {
-                "selected_reply": action.payload["replies"][0]
-            }
-
-    # Store feedback
+    # Store feedback record
     user_feedback = UserFeedback(
         action_id=action_id,
         feedback_type=feedback_type
     )
 
     db.add(user_feedback)
+    
+    # Log to audit trail
+    from app.services.audit_service import log_action
+    log_action(db, "action", action_id, feedback_type, "success", details={"type": action_type})
+    
     db.commit()
     db.refresh(action)
+
+    return {
+        "message": f"Action {feedback_type}",
+        "status": action.status,
+        "execution_metadata": action.execution_metadata
+    }
 
     return {
         "message": "Action processed",

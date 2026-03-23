@@ -9,10 +9,13 @@ from app.api.v1 import router as api_router
 # Import models to ensure they're registered
 import app.models
 
+from app.services.scheduler import start_scheduler_thread
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
+    start_scheduler_thread()
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables created")
     yield

@@ -8,8 +8,8 @@ class Settings(BaseSettings):
     
     DATABASE_URL: str = "sqlite:///./smartbee.db"
     
-    GMAIL_CREDENTIALS_FILE: str = "app/config/credentials.json"
-    GMAIL_TOKEN_FILE: str = "app/config/token.pickle"
+    GMAIL_CREDENTIALS_FILE: str = "credentials.json"
+    GMAIL_TOKEN_FILE: str = "token.pickle"
     
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-3.5-turbo"
