@@ -135,6 +135,11 @@ export class SmartBeeAPI {
     });
   }
 
+  // Get Analytics Stats
+  async getAnalytics(): Promise<any> {
+    return this.request('/api/v1/analytics/stats');
+  }
+
   // Bootstrap Test Data
   async bootstrap(): Promise<{ message: string }> {
     return this.request('/api/v1/bootstrap/', { method: 'POST' });

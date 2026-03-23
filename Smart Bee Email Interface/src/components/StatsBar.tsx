@@ -64,34 +64,52 @@ function StatCard({ icon, label, value, color, trend, progress }: StatCardProps)
   );
 }
 
+import { useState, useEffect } from "react";
+import { api } from "../api/client";
+
 export function StatsBar() {
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await api.getAnalytics();
+        setStats(data);
+      } catch (e) {
+        console.error("Failed to fetch analytics", e);
+      }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000); // 30s refresh
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
         icon={<Mail className="w-6 h-6 text-white" />}
-        label="Emails Scheduled Today"
-        value={4}
+        label="Emails Scheduled"
+        value={stats?.actions_count || 0}
         color="bg-gradient-to-br from-[#FFC107] to-[#FFB300]"
         trend={{ value: 2, isPositive: true }}
       />
       <StatCard
         icon={<Brain className="w-6 h-6 text-white" />}
-        label="AI Tasks Pending"
-        value={2}
+        label="AI Processed"
+        value={stats?.processed_emails || 0}
         color="bg-gradient-to-br from-[#FFB300] to-[#FFC107]"
-        trend={{ value: 33, isPositive: false }}
       />
       <StatCard
         icon={<Clock className="w-6 h-6 text-white" />}
-        label="Time Saved This Week"
-        value="3.5h"
+        label="Time Saved"
+        value={`${stats?.time_saved_hours || 0}h`}
         color="bg-gradient-to-br from-[#FFCA28] to-[#FFD54F]"
         progress={70}
       />
       <StatCard
         icon={<Inbox className="w-6 h-6 text-white" />}
-        label="Unread Emails"
-        value={12}
+        label="Total Emails"
+        value={stats?.total_emails || 0}
         color="bg-gradient-to-br from-[#1E1E1E] to-[#424242]"
         trend={{ value: 12, isPositive: true }}
       />

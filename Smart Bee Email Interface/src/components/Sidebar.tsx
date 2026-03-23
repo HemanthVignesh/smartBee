@@ -1,5 +1,6 @@
 import { Home, Inbox, Calendar, Brain, BarChart3, Settings, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import logo from "../assets/SmartBee_logo.png";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -48,10 +49,11 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
   return (
     <aside className="w-64 bg-white/90 backdrop-blur-md border-r border-gray-200 p-6 flex flex-col shadow-lg">
       {/* Logo section */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 mb-2">
+      <div className="mb-8 flex flex-col items-center">
+        <img src={logo} alt="Smart Bee Logo" className="w-16 h-16 object-contain mb-2" />
+        <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-xs text-gray-500">All systems active</span>
+          <span className="text-xs text-gray-500">Live & Secured</span>
         </div>
       </div>
 

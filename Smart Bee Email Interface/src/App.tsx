@@ -10,12 +10,20 @@ import { Sidebar } from "./components/Sidebar";
 import { Analytics } from "./components/Analytics";
 
 
+import logo from "./assets/SmartBee_logo.png";
+import bgImage from "./assets/SmartBee_bg.png";
 
 export default function App() {
   const [currentView, setCurrentView] = useState("dashboard");
 
   return (
-    <div className="size-full bg-gradient-to-br from-gray-50 via-[#FFF8E1]/20 to-gray-50 relative overflow-hidden">
+    <div className="size-full bg-slate-50 relative overflow-hidden">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 opacity-5 pointer-events-none mix-blend-multiply bg-repeat"
+        style={{ backgroundImage: `url(${bgImage})`, backgroundSize: '400px' }}
+      ></div>
+      
       {/* Honeycomb background pattern */}
       <HexagonPattern />
       
@@ -31,10 +39,10 @@ export default function App() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
           <header className="bg-white/90 backdrop-blur-md border-b border-gray-200 px-6 py-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              
+            <div className="flex items-center gap-4">
+              <img src={logo} alt="Smart Bee Logo" className="w-10 h-10 object-contain" />
               <div>
-                <h1 className="text-2xl text-gray-900">Smart Bee</h1>
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Smart Bee</h1>
                 <p className="text-sm text-gray-500">Intelligent Email Management</p>
               </div>
             </div>

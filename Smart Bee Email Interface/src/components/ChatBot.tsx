@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User, X, Sparkles } from "lucide-react";
-import { analyzeEmail } from "../api/analyzeEmail";
+import { api } from "../api/client";
 
 
 
@@ -63,15 +63,23 @@ export function ChatBot() {
     setShowSuggestions(false);
   
     try {
-      const aiResult = await analyzeEmail(userText);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/chatbot/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: userText, 
+          history: [], 
+          session_id: "user_session_1" 
+        })
+      });
+
+      if (!response.ok) throw new Error("API error");
+      const data = await response.json();
   
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: 
-          `🧠 Intent: ${aiResult.intent}\n` +
-          `⚡ Priority: ${aiResult.priority}\n\n` +
-          `${aiResult.suggested_reply}`,
+        content: data.response,
         timestamp: new Date(),
       };
   
