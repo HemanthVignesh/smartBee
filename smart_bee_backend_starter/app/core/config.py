@@ -14,9 +14,13 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-3.5-turbo"
     
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    
     FRONTEND_URL: str = "http://localhost:5173"
     
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()

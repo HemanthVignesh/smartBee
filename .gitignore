@@ -52,3 +52,4 @@ Thumbs.db
 *.swo
 credentials.json
 smart_bee_backend_starter/credentials.json
+.env

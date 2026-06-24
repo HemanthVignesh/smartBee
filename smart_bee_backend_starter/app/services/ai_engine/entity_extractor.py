@@ -1,10 +1,21 @@
 """Email Entity Extraction"""
 
+import re
+import json
 from typing import Dict
 import logging
 from app.services.ai_engine.llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_json(text: str) -> dict:
+    """Robustly parse JSON from LLM output, stripping markdown code fences."""
+    # Strip ```json ... ``` or ``` ... ``` wrappers
+    text = text.strip()
+    text = re.sub(r'^```(?:json)?\s*', '', text)
+    text = re.sub(r'\s*```$', '', text)
+    return json.loads(text.strip())
 
 
 class EntityExtractor:
@@ -33,8 +44,7 @@ Body:
 
         try:
             response = self.llm.generate_completion(prompt, system_prompt)
-            import json
-            return json.loads(response)
+            return _parse_json(response)
         except Exception as e:
             logger.warning(f"Entity extraction failed: {e}")
             return {

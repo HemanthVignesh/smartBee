@@ -164,3 +164,19 @@ def process_email(
         "message": "Email processed successfully",
         "email_id": email_id
     }
+
+
+@router.post("/{email_id}/analyze")
+def analyze_email_on_demand(
+    email_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Manually trigger AI analysis for a specific email (e.g. promotions, social)
+    """
+    from app.services.email_processor import EmailProcessor
+    processor = EmailProcessor(db)
+    result = processor.process_email(email_id, force=True)
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+    return result

@@ -16,6 +16,7 @@ class Email(Base):
     source = Column(String, nullable=True)
     received_at = Column(DateTime, default=datetime.datetime.utcnow)
     processed = Column(Boolean, default=False)
+    category = Column(String, default="primary", nullable=True)
 
     decisions = relationship("Decision", back_populates="email")
     analysis = relationship("EmailAnalysis", back_populates="email", uselist=False)

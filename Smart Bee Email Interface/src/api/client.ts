@@ -13,6 +13,9 @@ export interface Email {
   received_at: string;
   source: string;
   created_at: string;
+  category?: string;
+  analysis?: any;
+  decisions?: any[];
 }
 
 export interface SuggestedAction {
@@ -25,12 +28,17 @@ export interface SuggestedAction {
 
 export interface InsightResponse {
   email_id: string;
+  sender: string;
+  subject?: string;
+  received_at: string;
+  category?: string;
   summary: string;
   intent: string;
   priority: 'high' | 'medium' | 'low';
   confidence: number;
   entities: Record<string, any>;
   actions: SuggestedAction[];
+  rationale?: string;
 }
 
 export interface FetchEmailsResponse {
@@ -43,6 +51,7 @@ export interface FetchEmailsResponse {
 export interface FeedbackRequest {
   feedback_type: 'accepted' | 'rejected';
   notes?: string;
+  custom_payload?: Record<string, any>;
 }
 
 // API Client Class
@@ -114,6 +123,13 @@ export class SmartBeeAPI {
     return this.request(`/api/v1/emails/${emailId}`);
   }
 
+  // Manually trigger AI analysis on an email
+  async analyzeEmail(emailId: string): Promise<any> {
+    return this.request(`/api/v1/emails/${emailId}/analyze`, {
+      method: 'POST',
+    });
+  }
+
   // Search Emails
   async searchEmails(query: string, limit?: number): Promise<Email[]> {
     const params = new URLSearchParams({ query });
@@ -135,14 +151,110 @@ export class SmartBeeAPI {
     });
   }
 
+  // Delete a scheduled email suggested action
+  async deleteScheduledEmail(actionId: string): Promise<any> {
+    return this.request(`/api/v1/scheduled/${actionId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Get Analytics Stats
   async getAnalytics(): Promise<any> {
     return this.request('/api/v1/analytics/stats');
   }
 
-  // Bootstrap Test Data
+  // Sync Gmail - fetch real emails now
+  async syncGmail(): Promise<{ status: string; message: string; new_emails: number }> {
+    return this.request('/api/v1/bootstrap/sync', { method: 'POST' });
+  }
+
+  // Clear all data (dev reset tool)
+  async clearAllData(): Promise<{ message: string }> {
+    return this.request('/api/v1/bootstrap/clear', { method: 'DELETE' });
+  }
+
+  // [Deprecated] Bootstrap with mock data - kept for dev use only
   async bootstrap(): Promise<{ message: string }> {
     return this.request('/api/v1/bootstrap/', { method: 'POST' });
+  }
+
+  // Chat with AI Assistant
+  async chat(message: string, sessionId = "default_session"): Promise<{ response: string; context_used: boolean }> {
+    return this.request('/api/v1/chatbot/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        session_id: sessionId,
+      }),
+    });
+  }
+
+  // Get Chat History
+  async getChatHistory(sessionId = "default_session", limit = 50): Promise<Array<{id: string; role: string; content: string; timestamp: string}>> {
+    const data = await this.request<Array<{id: string; role: string; content: string; timestamp: string}>>(`/api/v1/chatbot/history?session_id=${encodeURIComponent(sessionId)}&limit=${limit}`);
+    return Array.isArray(data) ? data : [];
+  }
+
+  // Clear Chat History
+  async clearChatHistory(sessionId = "default_session"): Promise<{ message: string }> {
+    return this.request(`/api/v1/chatbot/history?session_id=${encodeURIComponent(sessionId)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Get Scheduled Actions / Emails
+  async getScheduledEmails(): Promise<any[]> {
+    const data = await this.request<any[]>('/api/v1/scheduled/');
+    return Array.isArray(data) ? data : [];
+  }
+
+  // Get Scheduled Meetings
+  async getMeetings(): Promise<any[]> {
+    const data = await this.request<any[]>('/api/v1/actions/meetings');
+    return Array.isArray(data) ? data : [];
+  }
+
+  // Update Scheduled Email
+  async updateScheduledEmail(actionId: string, to: string, subject: string, body: string): Promise<any> {
+    return this.request(`/api/v1/scheduled/${actionId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ to, subject, body }),
+    });
+  }
+
+  // Pause Scheduled Email
+  async pauseScheduledEmail(actionId: string): Promise<any> {
+    return this.request(`/api/v1/scheduled/${actionId}/pause`, {
+      method: 'POST',
+    });
+  }
+
+  // Resume Scheduled Email
+  async resumeScheduledEmail(actionId: string): Promise<any> {
+    return this.request(`/api/v1/scheduled/${actionId}/resume`, {
+      method: 'POST',
+    });
+  }
+
+  // Rewrite Scheduled Email with AI
+  async rewriteScheduledEmail(actionId: string, instruction: string): Promise<any> {
+    return this.request(`/api/v1/scheduled/${actionId}/rewrite`, {
+      method: 'POST',
+      body: JSON.stringify({ instruction }),
+    });
+  }
+
+  // Get System Settings
+  async getSettings(): Promise<any> {
+    return this.request('/api/v1/settings/');
+  }
+
+  // Update System Settings
+  async updateSettings(settingsData: any): Promise<any> {
+    return this.request('/api/v1/settings/', {
+      method: 'POST',
+      body: JSON.stringify(settingsData),
+    });
   }
 }
 
@@ -200,6 +312,56 @@ export function useInsights(autoFetch = true) {
   }, [autoFetch]);
 
   return { insights, loading, error, refetch: fetchInsights };
+}
+
+export function useScheduledEmails(autoFetch = true) {
+  const [scheduledEmails, setScheduledEmails] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchScheduled = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.getScheduledEmails();
+      setScheduledEmails(data);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (autoFetch) fetchScheduled();
+  }, [autoFetch]);
+
+  return { scheduledEmails, loading, error, refetch: fetchScheduled };
+}
+
+export function useMeetings(autoFetch = true) {
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchMeetings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.getMeetings();
+      setMeetings(data);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (autoFetch) fetchMeetings();
+  }, [autoFetch]);
+
+  return { meetings, loading, error, refetch: fetchMeetings };
 }
 
 export default api;

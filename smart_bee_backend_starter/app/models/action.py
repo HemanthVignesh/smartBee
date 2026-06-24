@@ -22,3 +22,7 @@ class SuggestedAction(Base):
     execution_metadata = Column(JSON, nullable=True)
 
     decision = relationship("Decision", back_populates="actions")
+
+    @property
+    def action_id(self) -> str:
+        return self.id

@@ -1,0 +1,241 @@
+email,category
+"Sender: sarah.connor@cyberdyne.com
+Subject: Smart Bee Project Roadmap Zoom
+Body: Hi Hemanth, can we schedule a Zoom call tomorrow at 10 AM to discuss the Smart Bee project roadmap? Let me know what times work for you. Thanks, Sarah.",primary
+"Sender: teamlead@smartbee.ai
+Subject: Urgent: Slide Deck Deadline
+Body: Hey Hemanth, please remember that the client presentation slides are due on 2026-06-15. We need to upload them before 5 PM to the shared drive. Let's make sure it's fully reviewed.",primary
+"Sender: john.doe@gmail.com
+Subject: Lunch today?
+Body: Hey! Just wanted to check if you are free for lunch today. Let me know.",primary
+"Sender: manager@company.com
+Subject: Feedback on your design spec
+Body: Hi Hemanth, I reviewed your design spec for the email ingestor. It looks solid, but let's add some more error handling for edge cases. Let's discuss tomorrow.",primary
+"Sender: client@business.com
+Subject: Contract questions
+Body: Hello Hemanth, I am reviewing the contract draft. I have a few questions about the payment milestones. Can we sync up today?",primary
+"Sender: developer-peer@company.com
+Subject: Need help debugging code review
+Body: Hi Hemanth, could you take a quick look at this pull request? I'm getting a strange test failure in the database session wrapper.",primary
+"Sender: hr@company.com
+Subject: Your interview schedule for tomorrow
+Body: Hi Hemanth, you have an interview scheduled tomorrow at 2 PM with the engineering lead. Please confirm if this time works for you.",primary
+"Sender: friend@gmail.com
+Subject: Weekend plans?
+Body: Hey, what are you up to this weekend? We should go hiking if the weather is good.",primary
+"Sender: colleague@company.com
+Subject: Database credentials
+Body: Hi, could you send me the latest database credentials for the staging environment? The old ones expired.",primary
+"Sender: partner@company.com
+Subject: Partnership agreement draft
+Body: Dear Hemanth, attached is the revised partnership agreement. Please review and sign the document when possible.",primary
+"Sender: professor@university.edu
+Subject: Recommendation letter follow up
+Body: Hello Hemanth, I have submitted the recommendation letter for your application. Let me know if you need anything else.",primary
+"Sender: user-support@product.com
+Subject: Your support inquiry #10923
+Body: Hi Hemanth, thank you for reaching out. I've looked into the issue you reported and it seems to be fixed now. Please test and confirm.",primary
+"Sender: coworker@company.com
+Subject: Quick question on API route
+Body: Hey Hemanth, quick question: which endpoint should I call to fetch the list of suggested actions? Is it v1/actions/suggested?",primary
+"Sender: boss@company.com
+Subject: Urgent review: Q3 plans
+Body: Hemanth, please review the Q3 planning document by end of day today. I need to present it to the board tomorrow morning.",primary
+"Sender: recruiter@jobs.com
+Subject: Interview scheduling - Tech role
+Body: Dear Hemanth, we were impressed by your profile. Are you available for a 30-minute introductory call this week? Please share your availability.",primary
+"Sender: john.smith@consulting.com
+Subject: Project kickoff details
+Body: Hi Hemanth, looking forward to starting the project next week. Let's schedule a kickoff call for Monday at 11 AM.",primary
+"Sender: developer@partner.com
+Subject: API integration issue
+Body: Hi, we are experiencing some timeouts while connecting to your webhook endpoint. Could you verify if there are any server issues on your end?",primary
+"Sender: admin@company.com
+Subject: Keycard access activation
+Body: Hi Hemanth, your new keycard is ready. Please stop by the admin office tomorrow morning to pick it up. Thank you.",primary
+"Sender: accounting@company.com
+Subject: Reimbursement receipt missing
+Body: Hi Hemanth, you submitted a travel reimbursement request, but the receipt for the hotel stay is missing. Please send it over.",primary
+"Sender: support@saas.com
+Subject: Re: Questions regarding API rate limits
+Body: Hi Hemanth, this is a reply to your ticket. Yes, we can increase your rate limits for the staging environment. What limit do you need?",primary
+"Sender: no-reply@aws.amazon.com
+Subject: AWS Server Migration Complete
+Body: Weekly AWS update: Our server performance has improved by 20% after the migration. All endpoints are healthy. No action is required.",updates
+"Sender: billing@studioco.design
+Subject: Invoice #10923 for Design Services
+Body: Hello, attached is invoice #10923 for the design services completed last month. Please process the payment by next Monday. Thank you!",updates
+"Sender: ICICI Bank <services@custcomm.icici.bank.in>
+Subject: Your Advance Tax is due by June 15, 2026
+Body: Beat the Advance Tax Deadline. Skip the rush, pay your Advance Tax through ICICI Bank. Log in Now. Dear customer...",updates
+"Sender: Google <noreply-accounts@google.com>
+Subject: You shared some Google Account data with NetMirror
+Body: Keep track of your Google Account data. You're receiving this email because you linked your account. If you didn't do this, review activity.",updates
+"Sender: no-reply@leetcode.com
+Subject: LeetCode Weekly Digest
+Body: Your weekly digest of coding achievements. Solved 12 problems this week, ranking improved. Keep coding!",updates
+"Sender: alert@server-monitor.com
+Subject: Server Node-3 Uptime Alert
+Body: System Alert: Disk usage on server node-3 exceeds 85%. Automated cleanup scheduled in 5 minutes.",updates
+"Sender: billing@netflix.com
+Subject: Your subscription receipt for June
+Body: Thank you for your payment. Your card has been successfully debited $19.99 for your premium monthly plan. Next billing date: July 22.",updates
+"Sender: no-reply@github.com
+Subject: GitHub security alert: dependency vulnerability detected
+Body: We found a known security vulnerability in a package that your repository depends on. Upgrade to the latest version immediately.",updates
+"Sender: security-alert@google.com
+Subject: Security Alert: New login detected
+Body: A new login was detected on your Google Account from a Chrome browser on macOS. If this was you, no action is needed.",updates
+"Sender: shipping@amazon.com
+Subject: Your package has been shipped
+Body: Your order #108-72342-12 has been shipped and is out for delivery. You can track your shipment here.",updates
+"Sender: no-reply@upstox.com
+Subject: Upstox account statement ready
+Body: Your monthly transaction statement and ledger for the month of May 2026 is now available for download. View statement.",updates
+"Sender: verify@saas.com
+Subject: Your verification code: 873421
+Body: Use code 873421 to verify your identity. This code expires in 10 minutes. Do not share this code with anyone.",updates
+"Sender: noreply@uber.com
+Subject: Your ride receipt with Uber
+Body: Thanks for riding with us. Total charged: $24.50. Paid with card ending in 4321. View details.",updates
+"Sender: alert@sentry.io
+Subject: Sentry: 10 new issues in production
+Body: Sentry detected 10 new exceptions in the smartbee-backend workspace. Review crash logs.",updates
+"Sender: noreply@campaigns.upstox.com
+Subject: Markets surge on hopes of US-Iran peace deal
+Body: Daily market summary: Nifty rises 1.2%, L&T share gains 4%, tech stocks lead rally. No action required.",updates
+"Sender: no-reply@zoom.us
+Subject: Your cloud recording is ready
+Body: The cloud recording for the meeting 'Project Status Sync' is now available. Click here to download or share.",updates
+"Sender: support@saas.com
+Subject: Your ticket #4562 has been resolved
+Body: Hello Hemanth, your ticket regarding the payment gateway integration has been resolved. Please rate your support experience.",updates
+"Sender: delivery@post.com
+Subject: Your order has been delivered
+Body: Your package has been delivered to the front desk. Received by: Admin. Thank you for using our service.",updates
+"Sender: no-reply@cloudflare.com
+Subject: Cloudflare weekly traffic report
+Body: Your weekly stats are ready. Total requests: 120k. Cached: 75%. Security events blocked: 42.",updates
+"Sender: noreply@digitalocean.com
+Subject: Droplet reset successfully initiated
+Body: The droplet 'smartbee-production' was successfully restarted. Droplet status is online and healthy.",updates
+"Sender: recommendationnc@naukri.com
+Subject: How to make your job search safer
+Body: Hi Hemanth, here are the recommendations for safer job searches on our platform. Check them out and apply to jobs.",promotions
+"Sender: noreply@unstop.news
+Subject: Final Call: Learn from Amazon Scientists through Amazon ML Summer School 2026
+Body: Learn from Amazon Scientists through Amazon ML Summer School 2026. Join the webinars, complete assignments, and win rewards. Apply now!",promotions
+"Sender: noreply@unstop.news
+Subject: Apply Now: Top internships & hackathons open!
+Body: Hey Hemanth, top internships and hackathons from Google, Microsoft, and Uber are now open for registration. Apply now to participate.",promotions
+"Sender: jobmessenger@monsterindia.com
+Subject: Hemanth, Hot Job Opportunities Waiting For You
+Body: Hi Hemanth, we found new job opportunities that match your profile. Software Engineer, Full Stack Developer, Python Expert. View jobs.",promotions
+"Sender: info@updates.easemytrip.com
+Subject: Leave Approved❓
+Body: Now book that flight & get up to 35% off on hotel bookings and domestic flights. Use coupon VACAY35 at checkout.",promotions
+"Sender: tatacliqluxury@luxeupdates.tatacliq.com
+Subject: Your New Footwear Formula
+Body: Upgrade your wardrobe with premium footwear. Get up to 40% off on top luxury brands. Offer valid till Sunday.",promotions
+"Sender: no-reply@discoverpilgrim.com
+Subject: Friday Just Got Fabulous! 💃
+Body: Flat 25% off storewide! Celebrate the weekend with our organic skincare collection. Enter code FAB25 at checkout.",promotions
+"Sender: tatacliq@mall.tatacliq.com
+Subject: A Golden Choice Awaits 💛
+Body: Shop the latest gold jewelry designs. Special discounts for premium members. Complete your purchase today.",promotions
+"Sender: noreply@jobalertshub.com
+Subject: 🛍️ Home Shopping Spree ⚡️Up to 80% off on Home, kitchen, toys & outdoor essentials
+Body: Home Shopping Spree: 10th - 14th June. Up to 80% off on premium kitchen appliances and outdoor essentials. Shop Now!",promotions
+"Sender: services@custcomm.icici.bank.in
+Subject: June 15: Don't miss the Advance Tax deadline
+Body: Beat the Advance Tax Deadline. Skip the rush, pay your Advance Tax through ICICI Bank. Also check pre-approved home loan offers starting at 8.4%.",promotions
+"Sender: noreply@mail.racing.mclaren.com
+Subject: Race weekend picks 🇪🇸
+Body: Get exclusive McLaren merchandise. Race weekend special discount: 15% off using code MCLAREN15. Shop the collection.",promotions
+"Sender: alert@mailer.ajio.in
+Subject: Wait...You’re leaving this behind? 😱
+Body: Hey Hemanth, items in your cart are selling fast! Complete your purchase now and get an extra 15% off using code BAG15. Click here to checkout.",promotions
+"Sender: emailer@luxe.ajio.com
+Subject: Pack for your next vacay with these travel-inspired styleboards
+Body: Ajio Luxe: Discover travel fashion ideas and vacay trends. Get up to 50% discount on boutique designer wear.",promotions
+"Sender: info@almostgods.com
+Subject: EOSS - Early Access is confirmed
+Body: End of Season Sale: Early access is now active for selected customers. Get flat 30% off on all luxury apparel.",promotions
+"Sender: team@cs.resumeworded.com
+Subject: CS#328: effort is invisible (unless you show it)
+Body: Get custom resume advice. Our AI platform will scan your resume and give recommendations to double your interview rate. Upgrade now.",promotions
+"Sender: no-reply@mail.bookmyshow.com
+Subject: You can’t leave this room🚪
+Body: Book tickets for the ultimate escape room experience in your city. Early bird discount: 20% off. Book now.",promotions
+"Sender: updates@updates.apollo247.com
+Subject: Too Humid? Try This ✅
+Body: Quick hacks to keep sweat & stickiness away. Order summers health essentials on Apollo 247 and get flat 15% off.",promotions
+"Sender: tatacliq@mall.tatacliq.com
+Subject: The Building Blocks Of Great Style👕
+Body: Buy 2 get 1 free on top-tier men's shirts. Refresh your casual collection with style blocks. Shop the sale.",promotions
+"Sender: services@customer.icici.bank.in
+Subject: Why sell shares when you can borrow smartly?
+Body: Get a loan up to Rs. 20 lakh instantly against your shares. Competitive interest rates and quick disbursement. Apply now.",promotions
+"Sender: noreply@mailers.zomato.com
+Subject: Some of our favourites…
+Body: Order from the highest rated restaurants in your neighborhood. Get flat Rs. 100 off on your next dinner order using ZOMATOFEST.",promotions
+"Sender: close_friend_updates@facebookmail.com
+Subject: Post by Anand Kumar Vuttaradi
+Body: Anand Kumar Vuttaradi posted a new update on your timeline: 'Hey Hemanth, are we still on for the hackathon planning this weekend?' Click here to reply.",social
+"Sender: updates-noreply@linkedin.com
+Subject: Tracy Galloway - CVP & COO Microsoft Americas just shared
+Body: Tracy Galloway shared a post: After 35 amazing years—including the last 10 at Microsoft—I am starting my next chapter... Click to view post.",social
+"Sender: notifications@github.com
+Subject: [GitHub] teamlead started following your repository
+Body: User 'teamlead' is now following your repository 'smart-bee-app'. You can manage your notification preferences in settings.",social
+"Sender: direct-messages@linkedin.com
+Subject: John Doe sent you a direct message
+Body: Hi Hemanth, I saw your post about the new React design system. I'd love to connect and discuss your approach. Best, John.",social
+"Sender: notifications@facebookmail.com
+Subject: Jane Smith sent you a friend request
+Body: Jane Smith has sent you a friend request. You have 3 friends in common. Accept or ignore.",social
+"Sender: digest@twitter.com
+Subject: Trending in your network today
+Body: See what your followers are tweeting about python, webdev, and machine learning. Catch up on discussions.",social
+"Sender: alerts@instagram.com
+Subject: New message from maria_codes
+Body: maria_codes sent you a photo in direct messages. Click here to open Instagram and reply.",social
+"Sender: no-reply@redditmail.com
+Subject: Your comment on r/python has 50 upvotes!
+Body: Congrats! Your comment about fastapi routing has received 50 upvotes and 3 replies. Read comments.",social
+"Sender: connections@linkedin.com
+Subject: Congratulate Hemanth on the new work anniversary
+Body: Hemanth is celebrating 2 years at SmartBee AI. Send a message to congratulate them.",social
+"Sender: groups@facebookmail.com
+Subject: New post in Developer Group
+Body: Alex Chen posted in React Developers: 'Has anyone migrated to Next.js 15 yet? What's your experience?' Click to view.",social
+"Sender: notifications@github.com
+Subject: [GitHub] Community Discussion: Next.js 15 App Router Transitions
+Body: A new discussion thread has been opened in the Next.js repository: 'Layout transitions in Next.js 15: Flash of unstyled content under heavy load'. Several maintainers have commented on workarounds.",forums
+"Sender: groups-noreply@googlegroups.com
+Subject: [python-dev] Proposed changes to PEP 708
+Body: A new email thread has been started on python-dev regarding PEP 708: 'How to handle dependency confusion in index packaging'. Here is the summary of proposals...",forums
+"Sender: notifications@stackoverflow.com
+Subject: New answer to your question 'How to map enum in SQLAlchemy core?'
+Body: User 'database_wizard' has posted an answer to your question. 'You can use the Enum type directly inside Column, but make sure to pass...' Click to view the full answer.",forums
+"Sender: digest@hacker-news.com
+Subject: Hacker News Daily Digest
+Body: Top links today: 1. Show HN: Smart Bee email assistant (250 points, 84 comments). 2. How SQLite database file format works (420 points).",forums
+"Sender: discussion-forum@webdev.com
+Subject: Is Tailwind CSS actually better than Vanilla CSS?
+Body: Community thread: Developers are debating the pros and cons of utility classes versus vanilla CSS custom properties. Read comments and join.",forums
+"Sender: list-digest@googlegroups.com
+Subject: [fastapi-users] Handling multiple database connections
+Body: User posted a query: What is the recommended way to initialize multiple sqlite databases in a single fastapi process? View thread.",forums
+"Sender: no-reply@stackoverflow.com
+Subject: Weekly digest: top questions tagged [sqlalchemy]
+Body: Here are this week's top voted questions tagged [sqlalchemy] on StackOverflow. 1. How to do bulk insert in v2? 2. Relationship loading strategies.",forums
+"Sender: community@github.com
+Subject: [GitHub Discussions] Best practices for deploying docker to AWS ECS
+Body: A discussion thread in the AWS Community discussions: How to structure multi-stage docker files for optimal caching? View comments.",forums
+"Sender: listmanager@python.org
+Subject: [python-announce] Release of Python 3.12.3
+Body: We are happy to announce the release of Python 3.12.3. This release contains several bug fixes and security improvements. Read announcement.",forums
+"Sender: digest@redditmail.com
+Subject: Top posts in r/fastapi today
+Body: Hemanth, here are the trending discussions in r/fastapi: 1. Structuring large projects. 2. Performance benchmark compared to Express. Go to Reddit.",forums

@@ -1,0 +1,8 @@
+{
+  "ai_model_mode": "openai",
+  "gemini_api_key": "",
+  "openai_api_key": "",
+  "auto_process": true,
+  "confidence_threshold": 0.8,
+  "max_daily_automations": 50
+}

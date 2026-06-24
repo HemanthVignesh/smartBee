@@ -10,6 +10,22 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    port: 5173,
+    strictPort: false, // allow fallback if 5173 is taken
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'lucide-react',
+      '@emotion/react',
+      '@emotion/styled',
+      '@mui/material',
+      '@mui/icons-material',
+      'recharts',
+    ],
+  },
   resolve: {
     alias: {
       // Alias @ to the src directory

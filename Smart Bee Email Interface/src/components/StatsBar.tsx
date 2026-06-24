@@ -14,21 +14,21 @@ interface StatCardProps {
 
 function StatCard({ icon, label, value, color, trend, progress }: StatCardProps) {
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-sm border border-gray-200 hover:border-[#FFC107] hover:shadow-xl transition-all duration-300 hover:-translate-y-2 relative overflow-hidden group">
+    <div className="bg-white/70 backdrop-blur-md rounded-3xl p-5 shadow-sm border border-gray-200/60 hover:border-amber-500/20 hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group cursor-pointer">
       {/* Honey glow effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#FFC107]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       
       {/* Shimmer effect */}
       <div className="absolute inset-0 animate-shimmer opacity-0 group-hover:opacity-100"></div>
       
       <div className="relative z-10">
-        <div className="flex items-start justify-between mb-3">
-          <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+        <div className="flex items-start justify-between mb-3.5">
+          <div className={`w-11 h-11 rounded-xl ${color} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
             {icon}
           </div>
           {trend && (
-            <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-              trend.isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+            <div className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              trend.isPositive ? "bg-green-500/10 text-green-700 border border-green-500/20" : "bg-red-500/10 text-red-700 border border-red-500/20"
             }`}>
               {trend.isPositive ? (
                 <TrendingUp className="w-3 h-3" />
@@ -41,18 +41,18 @@ function StatCard({ icon, label, value, color, trend, progress }: StatCardProps)
         </div>
         
         <div className="flex-1 min-w-0">
-          <div className="text-3xl text-gray-900 mb-1">{value}</div>
-          <div className="text-sm text-gray-600">{label}</div>
+          <div className="text-3xl font-bold text-gray-900 tracking-tight mb-1">{value}</div>
+          <div className="text-xs font-semibold text-gray-500">{label}</div>
           
           {progress !== undefined && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+            <div className="mt-3.5">
+              <div className="flex items-center justify-between text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">
                 <span>Weekly Goal</span>
                 <span>{progress}%</span>
               </div>
-              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-1 bg-gray-150 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-[#FFC107] to-[#FFB300] rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>

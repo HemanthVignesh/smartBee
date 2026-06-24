@@ -46,102 +46,150 @@ class EmailIngestor:
                     except:
                         pass
 
-                # 1. Create new email
-                new_email = Email(
-                    message_id=e["message_id"],
-                    sender=e["sender"],
-                    subject=e["subject"],
-                    body=e["body"],
-                    received_at=received_at,
-                    processed=False
-                )
-                self.db.add(new_email)
-                self.db.flush() # Get the UUID
+                # 1. Map category from Gmail labelIds first to mimic Gmail categorization
+                category = None
+                label_ids = e.get("label_ids", [])
+                if label_ids:
+                    for label in label_ids:
+                        if label == "CATEGORY_PERSONAL":
+                            category = "primary"
+                            break
+                        elif label == "CATEGORY_PROMOTIONS":
+                            category = "promotions"
+                            break
+                        elif label == "CATEGORY_SOCIAL":
+                            category = "social"
+                            break
+                        elif label == "CATEGORY_UPDATES":
+                            category = "updates"
+                            break
+                        elif label == "CATEGORY_FORUMS":
+                            category = "forums"
+                            break
+                
+                # If no Gmail category label is found, fall back to AI categorization
+                if not category:
+                    try:
+                        from app.services.ai_engine.categorizer import categorize_email
+                        category = categorize_email(e["subject"], e["body"], e["sender"])
+                    except Exception as cat_err:
+                        logger.error(f"Category detection failed for email message {e['message_id']}: {cat_err}")
+                        category = "primary"
 
-                # 2. Run AI Analysis Pipeline
+                is_primary = (category == "primary")
+                intent_data = {}
+                entities = {}
+                priority = "medium"
+                summary = ""
+
+                # 2. Run AI Analysis Pipeline in-memory ONLY for Primary emails
+                if is_primary:
+                    try:
+                        from app.services.ai_engine.intent_detector import detect_intent
+                        from app.services.ai_engine.entity_extractor import extract_entities
+                        from app.services.ai_engine.priority_scorer import score_priority
+                        from app.services.ai_engine.summarizer import EmailSummarizer
+
+                        # Detect intent, entities and category using in-memory email data
+                        intent_data = detect_intent(e["subject"], e["body"])
+                        entities = extract_entities(e["subject"], e["body"])
+                        priority = score_priority(e["body"], intent_data.get("intent", "general"))
+                        
+                        summarizer = EmailSummarizer()
+                        summary = summarizer.summarize(e["body"])
+                    except Exception as ai_err:
+                        logger.error(f"AI Analysis failed for email message {e['message_id']}: {ai_err}")
+
+                # 3. Write to DB: Only write analysis/decisions/actions for Primary category emails
                 try:
-                    from app.services.ai_engine.intent_detector import detect_intent
-                    from app.services.ai_engine.entity_extractor import extract_entities
-                    from app.services.ai_engine.priority_scorer import score_priority
-                    from app.services.ai_engine.summarizer import EmailSummarizer
-                    from app.models.analysis import EmailAnalysis
-                    from app.models.decision import Decision
-                    from app.models.action import SuggestedAction
-                    import uuid
-
-                    # Detect intent and entities
-                    intent_data = detect_intent(new_email.subject, new_email.body)
-                    entities = extract_entities(new_email.subject, new_email.body)
-                    priority = score_priority(new_email.body, intent_data.get("intent", "general"))
-                    
-                    summarizer = EmailSummarizer()
-                    summary = summarizer.summarize(new_email.body)
-
-                    # Store Analysis
-                    analysis = EmailAnalysis(
-                        email_id=new_email.id,
-                        intent=intent_data.get("intent", "general"),
-                        priority=priority,
-                        confidence=intent_data.get("confidence", 0.7),
-                        summary=summary,
-                        entities=entities
+                    # Create and store email
+                    new_email = Email(
+                        message_id=e["message_id"],
+                        sender=e["sender"],
+                        subject=e["subject"],
+                        body=e["body"],
+                        received_at=received_at,
+                        processed=False,
+                        category=category
                     )
-                    self.db.add(analysis)
+                    self.db.add(new_email)
+                    self.db.flush() # Get the UUID
 
-                    # Create Decision
-                    decision = Decision(
-                        email_id=new_email.id,
-                        decision_type=intent_data.get("intent", "general"),
-                        rationale=intent_data.get("reasoning", "Automated analysis"),
-                        auto_executable=False
-                    )
-                    self.db.add(decision)
-                    self.db.flush()
+                    if is_primary:
+                        from app.models.analysis import EmailAnalysis
+                        from app.models.decision import Decision
+                        from app.models.action import SuggestedAction
+                        import uuid
 
-                    # Create Suggested Action based on intent
-                    if intent_data.get("intent") == "meeting_request":
-                        # Attempt to extract meeting details from entities
-                        dates = entities.get("dates", [])
-                        times = entities.get("times", [])
-                        
-                        action_payload = {
-                            "title": f"Meeting with {new_email.sender}",
-                            "date": dates[0] if dates else datetime.now().strftime("%Y-%m-%d"),
-                            "time": times[0] if times else "10:00"
-                        }
-                        
-                        action = SuggestedAction(
-                            id=str(uuid.uuid4()),
-                            decision_id=decision.id,
-                            action_type="create_calendar_event",
-                            payload=action_payload,
-                            status="pending"
+                        # Store Analysis
+                        analysis = EmailAnalysis(
+                            email_id=new_email.id,
+                            intent=intent_data.get("intent", "general"),
+                            priority=priority,
+                            confidence=intent_data.get("confidence", 0.7),
+                            summary=summary,
+                            entities=entities
                         )
-                        self.db.add(action)
-                    
-                    elif intent_data.get("intent") in ["general", "question"]:
-                        from app.services.ai_engine.reply_generator import generate_replies
-                        reply = generate_replies(new_email.body, intent_data.get("intent"), priority, entities)
-                        
-                        action = SuggestedAction(
-                            id=str(uuid.uuid4()),
-                            decision_id=decision.id,
-                            action_type="generate_reply",
-                            payload={"replies": [reply]},
-                            status="pending"
+                        self.db.add(analysis)
+
+                        # Create Decision
+                        decision = Decision(
+                            email_id=new_email.id,
+                            decision_type=intent_data.get("intent", "general"),
+                            rationale=intent_data.get("reasoning", "Automated analysis"),
+                            auto_executable=False
                         )
-                        self.db.add(action)
+                        self.db.add(decision)
+                        self.db.flush()
 
-                except Exception as ai_err:
-                    logger.error(f"AI Analysis failed for email {new_email.id}: {ai_err}")
+                        # Create Suggested Actions based on intent and needs_reply
+                        needs_reply = intent_data.get("needs_reply", False)
+                        
+                        if intent_data.get("intent") == "meeting_request":
+                            # Attempt to extract meeting details from entities
+                            dates = entities.get("dates", [])
+                            times = entities.get("times", [])
+                            
+                            action_payload = {
+                                "title": f"Meeting with {new_email.sender}",
+                                "date": dates[0] if dates else datetime.now().strftime("%Y-%m-%d"),
+                                "time": times[0] if times else "10:00"
+                            }
+                            
+                            calendar_action = SuggestedAction(
+                                id=str(uuid.uuid4()),
+                                decision_id=decision.id,
+                                action_type="create_calendar_event",
+                                payload=action_payload,
+                                status="pending"
+                            )
+                            self.db.add(calendar_action)
+                        
+                        if needs_reply:
+                            from app.services.ai_engine.reply_generator import generate_replies
+                            reply = generate_replies(e["body"], intent_data.get("intent"), priority, entities)
+                            
+                            reply_action = SuggestedAction(
+                                id=str(uuid.uuid4()),
+                                decision_id=decision.id,
+                                action_type="generate_reply",
+                                payload={
+                                    "replies": [reply],
+                                    "to": "hemanthvignesh27@gmail.com",
+                                    "subject": f"Re: {new_email.subject or 'Inquiry'}"
+                                },
+                                status="pending"
+                            )
+                            self.db.add(reply_action)
 
-                saved_emails.append(new_email)
-                logger.info(f"Added new email and analysis for: {e['subject'][:50]}")
+                    self.db.commit()
+                    saved_emails.append(new_email)
+                    logger.info(f"Added and committed new email for: {e['subject'][:50]}")
+                except Exception as commit_err:
+                    logger.error(f"Commit failed for email {e['message_id']}: {commit_err}")
+                    self.db.rollback()
 
-            # Commit all at once
-            self.db.commit()
-            logger.info(f"Saved {len(saved_emails)} new emails to database")
-            
+            logger.info(f"Progressive ingestion complete: saved {len(saved_emails)} new emails to database")
             return saved_emails
         
         except Exception as e:
