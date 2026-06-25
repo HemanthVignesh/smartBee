@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 import uuid
@@ -11,6 +11,9 @@ from app.models.action import SuggestedAction
 from app.models.chat_history import ChatHistory
 from app.models.audit import AuditLog
 
+from app.auth.dependencies import get_current_user
+from app.models.user import User
+
 router = APIRouter(prefix="/bootstrap", tags=["Bootstrap"])
 
 def get_db():
@@ -22,14 +25,17 @@ def get_db():
 
 
 @router.post("/sync")
-def sync_gmail_now(db: Session = Depends(get_db)):
+def sync_gmail_now(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
     Trigger an immediate Gmail fetch and AI processing pipeline.
     Uses real email data from the authenticated Gmail account.
     """
     try:
         from app.services.ingestion.email_ingestor import EmailIngestor
-        ingestor = EmailIngestor(db)
+        ingestor = EmailIngestor(db, user_id=current_user.id)
         
         if ingestor.gmail.mock_mode:
             return {
@@ -49,40 +55,56 @@ def sync_gmail_now(db: Session = Depends(get_db)):
 
 
 @router.delete("/clear")
-def clear_all_data(db: Session = Depends(get_db)):
+def clear_all_data(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
-    ⚠️ DEVELOPMENT ONLY: Clears ALL data from the database.
-    Use this to reset the app to a clean state before a real Gmail sync.
+    Clears current user's data from the database.
     """
     try:
-        db.query(AuditLog).delete()
-        db.query(ChatHistory).delete()
-        db.query(SuggestedAction).delete()
-        db.query(Decision).delete()
-        db.query(EmailAnalysis).delete()
-        db.query(Email).delete()
+        user_emails = db.query(Email).filter(Email.user_id == current_user.id).all()
+        user_email_ids = [e.id for e in user_emails]
+        user_decisions = db.query(Decision).filter(Decision.email_id.in_(user_email_ids)).all()
+        user_decision_ids = [d.id for d in user_decisions]
+
+        db.query(SuggestedAction).filter(SuggestedAction.decision_id.in_(user_decision_ids)).delete()
+        db.query(Decision).filter(Decision.id.in_(user_decision_ids)).delete()
+        db.query(EmailAnalysis).filter(EmailAnalysis.email_id.in_(user_email_ids)).delete()
+        db.query(Email).filter(Email.user_id == current_user.id).delete()
+        db.query(ChatHistory).filter(ChatHistory.session_id.like(f"{current_user.id}:%")).delete()
+        db.query(AuditLog).filter(AuditLog.user_id == current_user.id).delete()
+        
         db.commit()
-        return {"message": "✅ All data cleared. The app is ready for a fresh Gmail sync."}
+        return {"message": "✅ Your data cleared. The app is ready for a fresh Gmail sync."}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to clear data: {str(e)}")
 
 
 @router.post("/")
-def bootstrap_mock_data(db: Session = Depends(get_db)):
+def bootstrap_mock_data(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """
-    Clears current tables and seeds the database with premium, realistic mock data
+    Clears current user's tables and seeds the database with premium, realistic mock data
     for demoing the Smart Bee features.
     """
 
     try:
-        # Clear tables
-        db.query(AuditLog).delete()
-        db.query(ChatHistory).delete()
-        db.query(SuggestedAction).delete()
-        db.query(Decision).delete()
-        db.query(EmailAnalysis).delete()
-        db.query(Email).delete()
+        # Clear tables for this user first
+        user_emails = db.query(Email).filter(Email.user_id == current_user.id).all()
+        user_email_ids = [e.id for e in user_emails]
+        user_decisions = db.query(Decision).filter(Decision.email_id.in_(user_email_ids)).all()
+        user_decision_ids = [d.id for d in user_decisions]
+
+        db.query(SuggestedAction).filter(SuggestedAction.decision_id.in_(user_decision_ids)).delete()
+        db.query(Decision).filter(Decision.id.in_(user_decision_ids)).delete()
+        db.query(EmailAnalysis).filter(EmailAnalysis.email_id.in_(user_email_ids)).delete()
+        db.query(Email).filter(Email.user_id == current_user.id).delete()
+        db.query(ChatHistory).filter(ChatHistory.session_id.like(f"{current_user.id}:%")).delete()
+        db.query(AuditLog).filter(AuditLog.user_id == current_user.id).delete()
         db.commit()
         
         # 1. Create mock emails
@@ -94,7 +116,8 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
             body="Hi Hemanth, can we schedule a Zoom call tomorrow at 10 AM to discuss the Smart Bee project roadmap? Let me know what times work for you. Thanks, Sarah.",
             received_at=datetime.utcnow() - timedelta(hours=2),
             processed=False,
-            category="primary"
+            category="primary",
+            user_id=current_user.id
         )
         
         email_2 = Email(
@@ -105,7 +128,8 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
             body="Hey Hemanth, please remember that the client presentation slides are due on 2026-06-15. We need to upload them before 5 PM to the shared drive. Let's make sure it's fully reviewed.",
             received_at=datetime.utcnow() - timedelta(hours=5),
             processed=False,
-            category="updates"
+            category="updates",
+            user_id=current_user.id
         )
         
         email_3 = Email(
@@ -116,7 +140,8 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
             body="Hello, attached is invoice #10923 for the design services completed last month. Please process the payment by next Monday. Thank you!",
             received_at=datetime.utcnow() - timedelta(days=1),
             processed=False,
-            category="updates"
+            category="updates",
+            user_id=current_user.id
         )
         
         email_4 = Email(
@@ -127,7 +152,8 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
             body="Weekly AWS update: Our server performance has improved by 20% after the migration. All endpoints are healthy. No action is required.",
             received_at=datetime.utcnow() - timedelta(days=2),
             processed=True,
-            category="updates"
+            category="updates",
+            user_id=current_user.id
         )
 
         email_5 = Email(
@@ -138,7 +164,8 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
             body="Hey Hemanth, items in your cart are selling fast! Complete your purchase now and get an extra 15% off using code BAG15. Click here to checkout.",
             received_at=datetime.utcnow() - timedelta(hours=1),
             processed=False,
-            category="promotions"
+            category="promotions",
+            user_id=current_user.id
         )
 
         email_6 = Email(
@@ -149,7 +176,8 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
             body="Anand Kumar Vuttaradi posted a new update on your timeline: 'Hey Hemanth, are we still on for the hackathon planning this weekend?' Click here to reply.",
             received_at=datetime.utcnow() - timedelta(minutes=45),
             processed=False,
-            category="social"
+            category="social",
+            user_id=current_user.id
         )
 
         email_7 = Email(
@@ -160,7 +188,8 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
             body="A new discussion thread has been opened in the Next.js repository: 'Layout transitions in Next.js 15: Flash of unstyled content under heavy load'. Several maintainers have commented on workarounds.",
             received_at=datetime.utcnow() - timedelta(hours=3),
             processed=False,
-            category="forums"
+            category="forums",
+            user_id=current_user.id
         )
         
         db.add_all([email_1, email_2, email_3, email_4, email_5, email_6, email_7])
@@ -270,7 +299,7 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
 
         # Scheduled Email 1 (Ready / Auto-send status in DB)
         action_3 = SuggestedAction(
-            id="scheduled-email-1",
+            id=f"scheduled-email-1-{uuid.uuid4()}",
             decision_id=decision_1.id,
             action_type="send_email",
             payload={
@@ -287,7 +316,7 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
 
         # Scheduled Email 2 (Paused status in DB)
         action_4 = SuggestedAction(
-            id="scheduled-email-2",
+            id=f"scheduled-email-2-{uuid.uuid4()}",
             decision_id=decision_2.id,
             action_type="send_email",
             payload={
@@ -304,7 +333,7 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
 
         # Scheduled Email 3 (Pending approval status in DB)
         action_5 = SuggestedAction(
-            id="scheduled-email-3",
+            id=f"scheduled-email-3-{uuid.uuid4()}",
             decision_id=decision_3.id,
             action_type="send_email",
             payload={
@@ -321,7 +350,7 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
 
         # Executed Meeting 1 (Product Strategy Review)
         action_meeting_1 = SuggestedAction(
-            id="scheduled-meeting-1",
+            id=f"scheduled-meeting-1-{uuid.uuid4()}",
             decision_id=decision_1.id,
             action_type="create_calendar_event",
             payload={
@@ -342,7 +371,7 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
 
         # Executed Meeting 2 (Client Presentation)
         action_meeting_2 = SuggestedAction(
-            id="scheduled-meeting-2",
+            id=f"scheduled-meeting-2-{uuid.uuid4()}",
             decision_id=decision_1.id,
             action_type="create_calendar_event",
             payload={
@@ -363,9 +392,9 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
         
         db.add_all([action_1, action_2, action_3, action_4, action_5, action_meeting_1, action_meeting_2])
         
-        # 5. Add Chat History
+        # 5. Add Chat History namespaces to user
         chat_1 = ChatHistory(
-            session_id="default_session",
+            session_id=f"{current_user.id}:default_session",
             role="assistant",
             content="Hi Hemanth! I have seeded the demo environment. You have 3 new emails and 2 pending actions to review on your dashboard.",
             created_at=datetime.utcnow() - timedelta(minutes=10)
@@ -379,6 +408,7 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
             entity_id=email_1.id,
             action="ingest",
             status="success",
+            user_id=current_user.id,
             details={"subject": email_1.subject},
             created_at=datetime.utcnow() - timedelta(hours=2)
         )
@@ -388,6 +418,7 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
             entity_id=email_2.id,
             action="ingest",
             status="success",
+            user_id=current_user.id,
             details={"subject": email_2.subject},
             created_at=datetime.utcnow() - timedelta(hours=5)
         )
@@ -397,6 +428,7 @@ def bootstrap_mock_data(db: Session = Depends(get_db)):
             entity_id=action_1.id,
             action="suggest",
             status="success",
+            user_id=current_user.id,
             details={"action_type": "create_calendar_event"},
             created_at=datetime.utcnow() - timedelta(hours=2)
         )

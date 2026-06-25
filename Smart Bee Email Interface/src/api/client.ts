@@ -1,12 +1,32 @@
-import { RateLimitError } from './RateLimitError';
-
 /**
- * Smart BEE API Client
+ * src/api/client.ts — UPDATED for JWT authentication
+ *
+ * Changes:
+ *  1. getToken() reads the JWT from localStorage (set by AuthContext).
+ *  2. Every request() call automatically injects  Authorization: Bearer <token>.
+ *  3. 401 responses trigger a client-side logout (token cleared, page reloaded).
+ *  4. New auth helpers: getMe(), exchangeGoogleCode().
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { RateLimitError } from './RateLimitError';
 
-// Type Definitions
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const TOKEN_KEY = 'sb_token';
+
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+
+function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function handleUnauthorized() {
+  // Clear stale token and hard-reload so AuthProvider re-evaluates
+  localStorage.removeItem(TOKEN_KEY);
+  window.location.replace('/');
+}
+
+// ── Type Definitions ──────────────────────────────────────────────────────────
+
 export interface Email {
   id: string;
   sender: string;
@@ -56,7 +76,17 @@ export interface FeedbackRequest {
   custom_payload?: Record<string, any>;
 }
 
-// API Client Class
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string | null;
+  picture: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+// ── API Client Class ──────────────────────────────────────────────────────────
+
 export class SmartBeeAPI {
   private baseURL: string;
 
@@ -66,20 +96,28 @@ export class SmartBeeAPI {
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+    const token = getToken();
 
     try {
       const response = await fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
+          // ── Inject JWT on every request ────────────────────────────────────
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...options?.headers,
         },
       });
 
+      // ── 401 → force logout ────────────────────────────────────────────────
+      if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Session expired — please sign in again.');
+      }
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
 
-        // Surface rate-limit errors with a user-friendly message
         if (response.status === 429) {
           const retryAfter = response.headers.get('Retry-After') ?? '60';
           const tier = errorData.tier ?? 'general';
@@ -87,7 +125,7 @@ export class SmartBeeAPI {
           const window = errorData.window_seconds ?? 60;
           throw new RateLimitError(
             `Too many requests (${tier} tier: ${limit} per ${window}s). ` +
-            `Please wait ${retryAfter}s and try again.`,
+              `Please wait ${retryAfter}s and try again.`,
             parseInt(retryAfter, 10),
           );
         }
@@ -102,17 +140,36 @@ export class SmartBeeAPI {
     }
   }
 
-  // Health Check
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  /** Fetch the current user's profile (validates the stored JWT). */
+  async getMe(): Promise<AuthUser> {
+    return this.request('/api/v1/auth/me');
+  }
+
+  /**
+   * Exchange a Google authorisation code for a SmartBee JWT.
+   * Used when the SPA handles the OAuth redirect itself.
+   */
+  async exchangeGoogleCode(code: string, redirectUri: string): Promise<{ access_token: string; user: AuthUser }> {
+    return this.request('/api/v1/auth/google/token', {
+      method: 'POST',
+      body: JSON.stringify({ code, redirect_uri: redirectUri }),
+    });
+  }
+
+  // ── Health ─────────────────────────────────────────────────────────────────
+
   async healthCheck(): Promise<{ status: string }> {
     return this.request('/health');
   }
 
-  // Gmail Profile
+  // ── Gmail ──────────────────────────────────────────────────────────────────
+
   async getGmailProfile(): Promise<any> {
     return this.request('/api/v1/emails/gmail/profile');
   }
 
-  // Fetch Emails from Gmail
   async fetchEmails(params?: { max_results?: number; query?: string }): Promise<FetchEmailsResponse> {
     return this.request('/api/v1/emails/fetch', {
       method: 'POST',
@@ -123,43 +180,40 @@ export class SmartBeeAPI {
     });
   }
 
-  // Get All Emails
+  // ── Emails ─────────────────────────────────────────────────────────────────
+
   async getEmails(params?: { skip?: number; limit?: number }): Promise<Email[]> {
     const queryParams = new URLSearchParams();
     if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString());
     if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
-    
     const query = queryParams.toString();
     const data = await this.request<Email[]>(`/api/v1/emails/${query ? '?' + query : ''}`);
     return Array.isArray(data) ? data : [];
   }
 
-  // Get Email by ID
   async getEmailById(emailId: string): Promise<Email> {
     return this.request(`/api/v1/emails/${emailId}`);
   }
 
-  // Manually trigger AI analysis on an email
   async analyzeEmail(emailId: string): Promise<any> {
-    return this.request(`/api/v1/emails/${emailId}/analyze`, {
-      method: 'POST',
-    });
+    return this.request(`/api/v1/emails/${emailId}/analyze`, { method: 'POST' });
   }
 
-  // Search Emails
   async searchEmails(query: string, limit?: number): Promise<Email[]> {
     const params = new URLSearchParams({ query });
     if (limit) params.append('limit', limit.toString());
     return this.request(`/api/v1/emails/search/?${params.toString()}`);
   }
 
-  // Get AI Insights
+  // ── Insights ───────────────────────────────────────────────────────────────
+
   async getInsights(): Promise<InsightResponse[]> {
     const data = await this.request<InsightResponse[]>('/api/v1/insights/');
     return Array.isArray(data) ? data : [];
   }
 
-  // Submit Action Feedback
+  // ── Actions ────────────────────────────────────────────────────────────────
+
   async submitFeedback(actionId: string, feedback: FeedbackRequest): Promise<any> {
     return this.request(`/api/v1/actions/${actionId}/feedback`, {
       method: 'POST',
@@ -167,70 +221,67 @@ export class SmartBeeAPI {
     });
   }
 
-  // Delete a scheduled email suggested action
   async deleteScheduledEmail(actionId: string): Promise<any> {
-    return this.request(`/api/v1/scheduled/${actionId}`, {
-      method: 'DELETE',
-    });
+    return this.request(`/api/v1/scheduled/${actionId}`, { method: 'DELETE' });
   }
 
-  // Get Analytics Stats
+  // ── Analytics ──────────────────────────────────────────────────────────────
+
   async getAnalytics(): Promise<any> {
     return this.request('/api/v1/analytics/stats');
   }
 
-  // Sync Gmail - fetch real emails now
+  // ── Bootstrap ──────────────────────────────────────────────────────────────
+
   async syncGmail(): Promise<{ status: string; message: string; new_emails: number }> {
     return this.request('/api/v1/bootstrap/sync', { method: 'POST' });
   }
 
-  // Clear all data (dev reset tool)
   async clearAllData(): Promise<{ message: string }> {
     return this.request('/api/v1/bootstrap/clear', { method: 'DELETE' });
   }
 
-  // [Deprecated] Bootstrap with mock data - kept for dev use only
   async bootstrap(): Promise<{ message: string }> {
     return this.request('/api/v1/bootstrap/', { method: 'POST' });
   }
 
-  // Chat with AI Assistant
-  async chat(message: string, sessionId = "default_session"): Promise<{ response: string; context_used: boolean }> {
+  // ── Chatbot ────────────────────────────────────────────────────────────────
+
+  async chat(message: string, sessionId = 'default_session'): Promise<{ response: string; context_used: boolean }> {
     return this.request('/api/v1/chatbot/chat', {
       method: 'POST',
-      body: JSON.stringify({
-        message,
-        session_id: sessionId,
-      }),
+      body: JSON.stringify({ message, session_id: sessionId }),
     });
   }
 
-  // Get Chat History
-  async getChatHistory(sessionId = "default_session", limit = 50): Promise<Array<{id: string; role: string; content: string; timestamp: string}>> {
-    const data = await this.request<Array<{id: string; role: string; content: string; timestamp: string}>>(`/api/v1/chatbot/history?session_id=${encodeURIComponent(sessionId)}&limit=${limit}`);
+  async getChatHistory(
+    sessionId = 'default_session',
+    limit = 50,
+  ): Promise<Array<{ id: string; role: string; content: string; timestamp: string }>> {
+    const data = await this.request<Array<{ id: string; role: string; content: string; timestamp: string }>>(
+      `/api/v1/chatbot/history?session_id=${encodeURIComponent(sessionId)}&limit=${limit}`,
+    );
     return Array.isArray(data) ? data : [];
   }
 
-  // Clear Chat History
-  async clearChatHistory(sessionId = "default_session"): Promise<{ message: string }> {
+  async clearChatHistory(sessionId = 'default_session'): Promise<{ message: string }> {
     return this.request(`/api/v1/chatbot/history?session_id=${encodeURIComponent(sessionId)}`, {
       method: 'DELETE',
     });
   }
 
-  // Get Scheduled Actions / Emails
+  // ── Scheduled emails ───────────────────────────────────────────────────────
+
   async getScheduledEmails(): Promise<any[]> {
     const data = await this.request<any[]>('/api/v1/scheduled/');
     return Array.isArray(data) ? data : [];
   }
 
-  // Get Scheduled Meetings
   async getMeetings(): Promise<any[]> {
     const data = await this.request<any[]>('/api/v1/actions/meetings');
     return Array.isArray(data) ? data : [];
   }
 
-  // Update Scheduled Email
   async updateScheduledEmail(actionId: string, to: string, subject: string, body: string): Promise<any> {
     return this.request(`/api/v1/scheduled/${actionId}`, {
       method: 'PUT',
@@ -238,21 +289,14 @@ export class SmartBeeAPI {
     });
   }
 
-  // Pause Scheduled Email
   async pauseScheduledEmail(actionId: string): Promise<any> {
-    return this.request(`/api/v1/scheduled/${actionId}/pause`, {
-      method: 'POST',
-    });
+    return this.request(`/api/v1/scheduled/${actionId}/pause`, { method: 'POST' });
   }
 
-  // Resume Scheduled Email
   async resumeScheduledEmail(actionId: string): Promise<any> {
-    return this.request(`/api/v1/scheduled/${actionId}/resume`, {
-      method: 'POST',
-    });
+    return this.request(`/api/v1/scheduled/${actionId}/resume`, { method: 'POST' });
   }
 
-  // Rewrite Scheduled Email with AI
   async rewriteScheduledEmail(actionId: string, instruction: string): Promise<any> {
     return this.request(`/api/v1/scheduled/${actionId}/rewrite`, {
       method: 'POST',
@@ -260,12 +304,12 @@ export class SmartBeeAPI {
     });
   }
 
-  // Get System Settings
+  // ── Settings ───────────────────────────────────────────────────────────────
+
   async getSettings(): Promise<any> {
     return this.request('/api/v1/settings/');
   }
 
-  // Update System Settings
   async updateSettings(settingsData: any): Promise<any> {
     return this.request('/api/v1/settings/', {
       method: 'POST',
@@ -274,10 +318,12 @@ export class SmartBeeAPI {
   }
 }
 
-// Singleton Instance
+// ── Singleton ─────────────────────────────────────────────────────────────────
+
 export const api = new SmartBeeAPI();
 
-// React Hooks
+// ── React Hooks ───────────────────────────────────────────────────────────────
+
 import { useState, useEffect } from 'react';
 
 export function useEmails(autoFetch = true) {

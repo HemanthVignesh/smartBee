@@ -9,6 +9,11 @@ from app.schemas.feedback import FeedbackRequest
 from app.models.action import SuggestedAction
 from app.models.feedback import UserFeedback
 
+from app.auth.dependencies import get_current_user
+from app.models.user import User
+from app.models.email import Email
+from app.models.decision import Decision
+
 router = APIRouter(prefix="/actions", tags=["Actions"])
 
 # DB dependency
@@ -20,12 +25,33 @@ def get_db():
         db.close()
 
 
+def _assert_action_owned_by(action: SuggestedAction, user_id: str, db: Session):
+    """Raise 404 (not 403 — don't leak existence) if action doesn't belong to user."""
+    decision = db.query(Decision).filter_by(id=action.decision_id).first()
+    if not decision:
+        raise HTTPException(status_code=404, detail="Action not found")
+    email = db.query(Email).filter_by(id=decision.email_id, user_id=user_id).first()
+    if not email:
+        raise HTTPException(status_code=404, detail="Action not found")
+
+
 @router.get("/meetings")
-def get_scheduled_meetings(db: Session = Depends(get_db)):
+def get_scheduled_meetings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Retrieve all executed suggested actions that created calendar events"""
+    from app.models.decision import Decision
+    user_decision_ids = [
+        d.id for d in db.query(Decision.id)
+        .join(Email, Decision.email_id == Email.id)
+        .filter(Email.user_id == current_user.id)
+        .all()
+    ]
     actions = db.query(SuggestedAction).filter(
         SuggestedAction.action_type == "create_calendar_event",
-        SuggestedAction.status == "executed"
+        SuggestedAction.status == "executed",
+        SuggestedAction.decision_id.in_(user_decision_ids)
     ).order_by(SuggestedAction.created_at.desc()).all()
     
     formatted = []
@@ -63,12 +89,15 @@ def get_scheduled_meetings(db: Session = Depends(get_db)):
 def submit_feedback(
     action_id: str,
     feedback: FeedbackRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     action = db.query(SuggestedAction).filter_by(id=action_id).first()
 
     if not action:
         raise HTTPException(status_code=404, detail="Action not found")
+
+    _assert_action_owned_by(action, current_user.id, db)
 
     feedback_type = feedback.feedback_type.lower().strip()
     action_type = action.action_type.lower().strip()
@@ -109,7 +138,7 @@ def submit_feedback(
                 action.payload = action_payload_copy
             
             from app.services.ingestion.gmail_service import GmailService
-            gmail = GmailService()
+            gmail = GmailService(token_json=current_user.gmail_token_json)
             to_addr = action.payload.get("to") or "hemanthvignesh27@gmail.com"
             subject = action.payload.get("subject") or "Reply Draft"
             
@@ -146,7 +175,7 @@ def submit_feedback(
     
     # Log to audit trail
     from app.services.audit_service import log_action
-    log_action(db, "action", action_id, feedback_type, "success", details={"type": action_type})
+    log_action(db, "action", action_id, feedback_type, "success", user_id=current_user.id, details={"type": action_type})
     
     db.commit()
     db.refresh(action)
@@ -156,10 +185,3 @@ def submit_feedback(
         "status": action.status,
         "execution_metadata": action.execution_metadata
     }
-
-    return {
-        "message": "Action processed",
-        "status": action.status,
-        "execution_metadata": action.execution_metadata
-    }
-    

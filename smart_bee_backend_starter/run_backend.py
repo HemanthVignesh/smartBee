@@ -1,4 +1,4 @@
-# Monkeypatch importlib.metadata to prevent slow filesystem scanning/crawling which hangs Pydantic/Uvicorn/SQLAlchemy/Alembic startup on macOS
+# run_backend.py
 import importlib.metadata
 
 class MockEntryPoints(tuple):
@@ -7,3 +7,13 @@ class MockEntryPoints(tuple):
 
 importlib.metadata.distributions = lambda *args, **kwargs: []
 importlib.metadata.entry_points = lambda *args, **kwargs: MockEntryPoints()
+
+import uvicorn
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True
+    )

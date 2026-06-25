@@ -12,9 +12,24 @@ logger = logging.getLogger(__name__)
 class EmailIngestor:
     """Fetches emails from Gmail and stores them in database"""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, user_id: str = None):
         self.db = db
-        self.gmail = GmailService()
+        self.user_id = user_id
+        
+        token_json = None
+        user = None
+        if user_id:
+            from app.models.user import User
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                token_json = user.gmail_token_json
+        
+        self.gmail = GmailService(token_json=token_json)
+        
+        # If the GmailService refreshed the token, save the new token back to User
+        if user and self.gmail.token_json and self.gmail.token_json != token_json:
+            user.gmail_token_json = self.gmail.token_json
+            db.commit()
 
     def fetch_and_store_unread(self, max_results: int = 10):
         """
@@ -110,7 +125,8 @@ class EmailIngestor:
                         body=e["body"],
                         received_at=received_at,
                         processed=False,
-                        category=category
+                        category=category,
+                        user_id=self.user_id
                     )
                     self.db.add(new_email)
                     self.db.flush() # Get the UUID

@@ -24,7 +24,7 @@ def run():
         python_bin = os.path.join(BACKEND_DIR, "venv", "Scripts", "python.exe")
         npm_cmd = "pnpm.cmd" if has_pnpm else "npm.cmd"
     else:
-        python_bin = "python3"
+        python_bin = os.path.join(BACKEND_DIR, "venv", "bin", "python")
         npm_cmd = "pnpm" if has_pnpm else "npm"
         
     pkg_mgr_name = "pnpm" if has_pnpm else "npm"
@@ -44,13 +44,23 @@ def run():
             print(f"❌ Failed to run {pkg_mgr_name} install: {e}")
             print(f"Please run {pkg_mgr_name} install manually inside the 'Smart Bee Email Interface' directory.")
             
+    # 2.5. Check and Install Python Dependencies
+    print("\n📦 Checking Python dependencies...")
+    try:
+        pip_bin = os.path.join(BACKEND_DIR, "venv", "bin", "pip") if not is_windows else os.path.join(BACKEND_DIR, "venv", "Scripts", "pip.exe")
+        if os.path.exists(pip_bin):
+            print("Installing/updating python-jose, passlib, and cryptography...")
+            subprocess.run([pip_bin, "install", "python-jose[cryptography]", "passlib[bcrypt]", "cryptography"], check=True)
+            print("✅ Python dependencies check completed successfully.")
+        else:
+            print("⚠️ pip not found in virtual environment, skipping auto-install.")
+    except Exception as e:
+        print(f"❌ Failed to run pip install: {e}")
+
     # 3. Start Backend Process
     print("\n📡 Starting Backend (FastAPI)...")
     backend_cmd = [
-        python_bin, "-m", "uvicorn", "app.main:app", 
-        "--host", "0.0.0.0", 
-        "--port", "8000",
-        "--reload"
+        python_bin, "run_backend.py"
     ]
     
     try:

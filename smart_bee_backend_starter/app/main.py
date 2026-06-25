@@ -1,7 +1,12 @@
 # Monkeypatch importlib.metadata to prevent slow filesystem scanning/crawling which hangs Pydantic/Uvicorn startup on macOS
 import importlib.metadata
+
+class MockEntryPoints(tuple):
+    def select(self, *args, **kwargs):
+        return MockEntryPoints()
+
 importlib.metadata.distributions = lambda *args, **kwargs: []
-importlib.metadata.entry_points = lambda *args, **kwargs: {}
+importlib.metadata.entry_points = lambda *args, **kwargs: MockEntryPoints()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,6 +57,15 @@ async def lifespan(app: FastAPI):
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE emails ADD COLUMN category VARCHAR DEFAULT 'primary';"))
             print("✅ Database migration: added 'category' column to 'emails' table")
+    except Exception as e:
+        # Suppress error if the column already exists
+        pass
+
+    # 3. Database migrations (add user_id column if not present)
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE emails ADD COLUMN user_id VARCHAR REFERENCES users(id) ON DELETE CASCADE;"))
+            print("✅ Database migration: added 'user_id' column to 'emails' table")
     except Exception as e:
         # Suppress error if the column already exists
         pass

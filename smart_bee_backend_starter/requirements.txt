@@ -34,3 +34,8 @@ sentencepiece>=0.2.0
 # ML Intent Model Classifier
 joblib==1.3.2
 scikit-learn==1.3.2
+
+# ── Auth (NEW) ────────────────────────────────────────────────────────────────
+python-jose[cryptography]==3.3.0   # JWT creation + verification (HS256 / RS256)
+passlib[bcrypt]==1.7.4             # password hashing utility (future use)
+cryptography==42.0.5               # required by python-jose cryptography extra

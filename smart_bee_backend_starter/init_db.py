@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Monkeypatch importlib.metadata to prevent slow filesystem scanning/crawling which hangs Pydantic/Uvicorn startup on macOS
+import importlib.metadata
+importlib.metadata.distributions = lambda *args, **kwargs: []
+importlib.metadata.entry_points = lambda *args, **kwargs: {}
+
 """
 Database initialization script for Smart BEE
 Creates all database tables defined in the models
@@ -13,6 +18,9 @@ from app.models.analysis import EmailAnalysis
 from app.models.decision import Decision
 from app.models.action import SuggestedAction
 from app.models.feedback import UserFeedback
+from app.models.user import User
+from app.models.audit import AuditLog
+from app.models.chat_history import ChatHistory
 
 
 def init_database():

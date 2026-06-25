@@ -8,6 +8,8 @@ from app.schemas.chatbot import ChatRequest, ChatResponse
 from app.services.ai_engine.llm_client import LLMClient
 from app.models.chat_history import ChatHistory
 from app.models.email import Email
+from app.auth.dependencies import get_current_user
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +25,14 @@ def get_db():
 @router.post("/chat", response_model=ChatResponse)
 def chat_with_assistant(
     request: ChatRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Chat with the Smart Bee AI assistant and execute agent tools.
     """
     try:
-        session_id = request.session_id or "default_session"
+        session_id = f"{current_user.id}:{request.session_id or 'default_session'}"
         
         # 1. Store User message
         user_msg = ChatHistory(session_id=session_id, role="user", content=request.message)
@@ -47,7 +50,7 @@ def chat_with_assistant(
         
         # 4. Log to audit
         from app.services.audit_service import log_action
-        log_action(db, "chatbot", session_id, "chat", "success")
+        log_action(db, "chatbot", session_id, "chat", "success", user_id=current_user.id)
         
         db.commit()
         
@@ -65,14 +68,16 @@ def chat_with_assistant(
 def get_chat_history(
     session_id: str = "default_session",
     limit: int = 50,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Retrieve chat history for a session.
     """
     try:
+        namespaced_session = f"{current_user.id}:{session_id}"
         history = db.query(ChatHistory).filter_by(
-            session_id=session_id
+            session_id=namespaced_session
         ).order_by(ChatHistory.created_at.desc()).limit(limit).all()
         history.reverse()
         
@@ -93,16 +98,17 @@ def get_chat_history(
 @router.delete("/history")
 def clear_chat_history(
     session_id: str = "default_session",
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     Clear all chat history for a session.
     """
     try:
-        deleted = db.query(ChatHistory).filter_by(session_id=session_id).delete()
+        namespaced_session = f"{current_user.id}:{session_id}"
+        deleted = db.query(ChatHistory).filter_by(session_id=namespaced_session).delete()
         db.commit()
-        return {"message": f"Cleared {deleted} messages for session '{session_id}'"}
+        return {"message": f"Cleared {deleted} messages"}
     except Exception as e:
         logger.error(f"Chat clear error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-

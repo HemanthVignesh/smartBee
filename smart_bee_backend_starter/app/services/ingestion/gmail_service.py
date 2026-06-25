@@ -68,13 +68,15 @@ class GmailService:
     def __init__(
         self, 
         creds_path: Optional[str] = None, 
-        token_path: Optional[str] = None
+        token_path: Optional[str] = None,
+        token_json: Optional[str] = None
     ):
         # Resolve paths dynamically relative to application root
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
         
         self.creds_path = creds_path or os.path.join(base_dir, settings.GMAIL_CREDENTIALS_FILE)
         self.token_path = token_path or os.path.join(base_dir, settings.GMAIL_TOKEN_FILE)
+        self.token_json = token_json
         self.mock_mode = False
         try:
             self.service = self._authenticate()
@@ -85,51 +87,78 @@ class GmailService:
 
     def _authenticate(self):
         """Handle OAuth2 authentication with Gmail.
-        Supports both pickle and JSON token storage formats.
+        Supports database user token JSON, pickle, and JSON token storage formats.
         """
         import json as _json
         from google.oauth2.credentials import Credentials as Creds
 
         creds = None
 
-        # Validate credentials file is non-empty before parsing
-        if os.path.exists(self.creds_path):
-            if os.path.getsize(self.creds_path) == 0:
-                raise ValueError(
-                    f"credentials.json at '{self.creds_path}' is empty. "
-                    "Please download a valid OAuth2 credentials file from Google Cloud Console."
+        # ── 1. DB-stored user tokens (Google OAuth) ──────────────────────────
+        if self.token_json:
+            try:
+                token_data = _json.loads(self.token_json)
+                creds = Creds(
+                    token=token_data.get("access_token"),
+                    refresh_token=token_data.get("refresh_token"),
+                    token_uri="https://oauth2.googleapis.com/token",
+                    client_id=settings.GOOGLE_CLIENT_ID,
+                    client_secret=settings.GOOGLE_CLIENT_SECRET,
+                    scopes=SCOPES,
                 )
-        
-        # ── Token loading: try pickle first, then JSON ──────────────────────
-        # Also check for a sibling .json token file (e.g. token.json)
-        json_token_path = os.path.splitext(self.token_path)[0] + ".json"
-
-        if os.path.exists(self.token_path):
-            try:
-                with open(self.token_path, "rb") as token:
-                    creds = pickle.load(token)
-                logger.info("Loaded existing Gmail credentials from pickle token")
+                logger.info("Loaded Gmail credentials from user token_json")
             except Exception as e:
-                logger.warning(f"Failed to load pickle token: {e}")
+                logger.error(f"Failed to load user token_json: {e}")
 
-        if not creds and os.path.exists(json_token_path):
-            try:
-                creds = Creds.from_authorized_user_file(json_token_path, SCOPES)
-                logger.info("Loaded existing Gmail credentials from JSON token")
-            except Exception as e:
-                logger.warning(f"Failed to load JSON token: {e}")
+        # ── 2. Local fallback tokens (pickle / file JSON) ───────────────────
+        if not creds:
+            # Validate credentials file is non-empty before parsing
+            if os.path.exists(self.creds_path):
+                if os.path.getsize(self.creds_path) == 0:
+                    raise ValueError(
+                        f"credentials.json at '{self.creds_path}' is empty. "
+                        "Please download a valid OAuth2 credentials file from Google Cloud Console."
+                    )
+            
+            # Token loading: try pickle first, then JSON
+            json_token_path = os.path.splitext(self.token_path)[0] + ".json"
 
-        # ── Refresh or re-authorize if needed ───────────────────────────────
+            if os.path.exists(self.token_path):
+                try:
+                    with open(self.token_path, "rb") as token:
+                        creds = pickle.load(token)
+                    logger.info("Loaded existing Gmail credentials from pickle token")
+                except Exception as e:
+                    logger.warning(f"Failed to load pickle token: {e}")
+
+            if not creds and os.path.exists(json_token_path):
+                try:
+                    creds = Creds.from_authorized_user_file(json_token_path, SCOPES)
+                    logger.info("Loaded existing Gmail credentials from JSON token")
+                except Exception as e:
+                    logger.warning(f"Failed to load JSON token: {e}")
+
+        # ── 3. Refresh or re-authorize if needed ─────────────────────────────
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 try:
                     creds.refresh(Request())
                     logger.info("Refreshed Gmail credentials")
+                    # If using DB user token, store refreshed credentials so caller can persist them
+                    if self.token_json:
+                        updated_token_data = _json.loads(self.token_json)
+                        updated_token_data["access_token"] = creds.token
+                        if creds.refresh_token:
+                            updated_token_data["refresh_token"] = creds.refresh_token
+                        self.token_json = _json.dumps(updated_token_data)
                 except Exception as e:
                     logger.error(f"Failed to refresh credentials: {e}")
                     creds = None
 
             if not creds:
+                if self.token_json:
+                    raise ValueError("User Google OAuth credentials expired and could not be refreshed.")
+
                 if not os.path.exists(self.creds_path):
                     raise FileNotFoundError(
                         f"Credentials file not found: {self.creds_path}\n"
@@ -142,14 +171,14 @@ class GmailService:
                 creds = flow.run_local_server(port=0)
                 logger.info("Completed OAuth2 flow")
 
-            # Save the credentials (pickle format)
-            try:
-                os.makedirs(os.path.dirname(self.token_path) or ".", exist_ok=True)
-                with open(self.token_path, "wb") as token:
-                    pickle.dump(creds, token)
-                logger.info(f"Saved credentials to {self.token_path}")
-            except Exception as e:
-                logger.warning(f"Failed to save token: {e}")
+                # Save the credentials (pickle format)
+                try:
+                    os.makedirs(os.path.dirname(self.token_path) or ".", exist_ok=True)
+                    with open(self.token_path, "wb") as token:
+                        pickle.dump(creds, token)
+                    logger.info(f"Saved credentials to {self.token_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to save token: {e}")
 
         return build("gmail", "v1", credentials=creds)
 

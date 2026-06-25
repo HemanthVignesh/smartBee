@@ -9,6 +9,11 @@ from app.db.session import SessionLocal
 from app.models.action import SuggestedAction
 from app.services.ai_engine.llm_client import LLMClient
 
+from app.auth.dependencies import get_current_user
+from app.models.user import User
+from app.models.email import Email
+from app.models.decision import Decision
+
 router = APIRouter(prefix="/scheduled", tags=["Scheduled Emails"])
 
 def get_db():
@@ -23,11 +28,32 @@ class EmailUpdate(BaseModel):
     subject: str
     body: str
 
+
+def _get_user_action_ids(db, user_id: str) -> list[str]:
+    """Return all SuggestedAction IDs that belong to this user (via Decision→Email)."""
+    decision_ids = [
+        d.id for d in db.query(Decision.id)
+        .join(Email, Decision.email_id == Email.id)
+        .filter(Email.user_id == user_id)
+        .all()
+    ]
+    return [
+        a.id for a in db.query(SuggestedAction.id)
+        .filter(SuggestedAction.decision_id.in_(decision_ids))
+        .all()
+    ]
+
+
 @router.get("/")
-def get_scheduled_emails(db: Session = Depends(get_db)):
+def get_scheduled_emails(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Retrieve all suggested actions representing emails"""
+    user_action_ids = _get_user_action_ids(db, current_user.id)
     actions = db.query(SuggestedAction).filter(
-        SuggestedAction.action_type.in_(["send_email", "generate_reply"])
+        SuggestedAction.action_type.in_(["send_email", "generate_reply"]),
+        SuggestedAction.id.in_(user_action_ids)
     ).order_by(SuggestedAction.created_at.desc()).all()
     
     formatted = []
@@ -84,9 +110,14 @@ def get_scheduled_emails(db: Session = Depends(get_db)):
 def update_scheduled_email(
     action_id: str,
     update_data: EmailUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Update email details inside suggested action payload"""
+    user_action_ids = _get_user_action_ids(db, current_user.id)
+    if action_id not in user_action_ids:
+        raise HTTPException(status_code=404, detail="Scheduled action not found")
+
     action = db.query(SuggestedAction).filter_by(id=action_id).first()
     if not action:
         raise HTTPException(status_code=404, detail="Scheduled action not found")
@@ -107,8 +138,16 @@ def update_scheduled_email(
     return {"message": "Email details updated successfully", "id": action_id}
 
 @router.post("/{action_id}/pause")
-def pause_scheduled_email(action_id: str, db: Session = Depends(get_db)):
+def pause_scheduled_email(
+    action_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Pause email scheduling (set status to paused/draft)"""
+    user_action_ids = _get_user_action_ids(db, current_user.id)
+    if action_id not in user_action_ids:
+        raise HTTPException(status_code=404, detail="Scheduled action not found")
+
     action = db.query(SuggestedAction).filter_by(id=action_id).first()
     if not action:
         raise HTTPException(status_code=404, detail="Scheduled action not found")
@@ -118,8 +157,16 @@ def pause_scheduled_email(action_id: str, db: Session = Depends(get_db)):
     return {"message": "Email paused successfully", "id": action_id, "status": "draft"}
 
 @router.post("/{action_id}/resume")
-def resume_scheduled_email(action_id: str, db: Session = Depends(get_db)):
+def resume_scheduled_email(
+    action_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Resume email scheduling (set status to scheduled/ready)"""
+    user_action_ids = _get_user_action_ids(db, current_user.id)
+    if action_id not in user_action_ids:
+        raise HTTPException(status_code=404, detail="Scheduled action not found")
+
     action = db.query(SuggestedAction).filter_by(id=action_id).first()
     if not action:
         raise HTTPException(status_code=404, detail="Scheduled action not found")
@@ -134,9 +181,14 @@ def resume_scheduled_email(action_id: str, db: Session = Depends(get_db)):
 def rewrite_scheduled_email(
     action_id: str,
     instruction: str = Body(..., embed=True),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Use AI to rewrite email body in action payload"""
+    user_action_ids = _get_user_action_ids(db, current_user.id)
+    if action_id not in user_action_ids:
+        raise HTTPException(status_code=404, detail="Scheduled action not found")
+
     action = db.query(SuggestedAction).filter_by(id=action_id).first()
     if not action:
         raise HTTPException(status_code=404, detail="Scheduled action not found")
@@ -177,8 +229,16 @@ def rewrite_scheduled_email(
 
 
 @router.delete("/{action_id}")
-def delete_scheduled_email(action_id: str, db: Session = Depends(get_db)):
+def delete_scheduled_email(
+    action_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Delete a suggested action representing a scheduled email/draft"""
+    user_action_ids = _get_user_action_ids(db, current_user.id)
+    if action_id not in user_action_ids:
+        raise HTTPException(status_code=404, detail="Scheduled email not found")
+
     action = db.query(SuggestedAction).filter_by(id=action_id).first()
     if not action:
         raise HTTPException(status_code=404, detail="Scheduled email not found")

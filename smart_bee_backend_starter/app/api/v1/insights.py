@@ -6,6 +6,9 @@ from app.models.decision import Decision
 from app.schemas.insight import InsightResponse
 from app.schemas.action import SuggestedActionResponse
 from app.models.analysis import EmailAnalysis
+from app.models.email import Email
+from app.auth.dependencies import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/insights", tags=["Insights"])
 
@@ -17,20 +20,26 @@ def get_db():
         db.close()
 
 @router.get("/", response_model=list[InsightResponse])
-def get_ai_insights(db: Session = Depends(get_db)):
-    """
-    Get AI insights aggregated by email analysis.
-    """
-    analyses = db.query(EmailAnalysis).order_by(EmailAnalysis.created_at.desc()).all()
-    
+def get_ai_insights(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get AI insights for the authenticated user's emails only."""
+    # Scoped join: only analyses whose email belongs to current_user
+    analyses = (
+        db.query(EmailAnalysis)
+        .join(Email, EmailAnalysis.email_id == Email.id)
+        .filter(Email.user_id == current_user.id)
+        .order_by(EmailAnalysis.created_at.desc())
+        .all()
+    )
+
     insights = []
-    
     for analysis in analyses:
         email = analysis.email
         if not email:
             continue
-            
-        # Get decisions and actions for this email
+
         decision = db.query(Decision).filter_by(email_id=email.id).first()
         actions = []
         rationale = None
@@ -44,12 +53,10 @@ def get_ai_insights(db: Session = Depends(get_db)):
                         action_type=sa.action_type,
                         payload=sa.payload,
                         status=sa.status,
-                        execution_metadata=sa.execution_metadata
+                        execution_metadata=sa.execution_metadata,
                     )
                 )
 
-        # Filter: only display insights that need review/action (have pending/suggested actions)
-        # or non-primary emails that have been explicitly analyzed by user request
         if len(actions) == 0 and email.category == "primary":
             continue
 
@@ -66,7 +73,7 @@ def get_ai_insights(db: Session = Depends(get_db)):
                 confidence=analysis.confidence,
                 entities=analysis.entities or {},
                 actions=actions,
-                rationale=rationale
+                rationale=rationale,
             )
         )
 
