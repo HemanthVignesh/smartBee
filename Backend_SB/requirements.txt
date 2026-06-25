@@ -1,3 +1,18 @@
+# Web framework
 fastapi
-uvicorn
+uvicorn[standard]
+
+# Data validation & settings
 pydantic
+pydantic-settings
+python-dotenv
+
+# Database — ORM + async drivers
+sqlalchemy[asyncio]
+aiosqlite          # SQLite async driver (dev)
+asyncpg            # PostgreSQL async driver (production)
+psycopg2-binary    # PostgreSQL sync driver (used by Alembic & security/keys.py)
+alembic            # schema migrations
+
+# Security
+cryptography

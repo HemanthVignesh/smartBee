@@ -1,3 +1,5 @@
+import { RateLimitError } from './RateLimitError';
+
 /**
  * Smart BEE API Client
  */
@@ -64,7 +66,7 @@ export class SmartBeeAPI {
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     try {
       const response = await fetch(url, {
         ...options,
@@ -76,6 +78,20 @@ export class SmartBeeAPI {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        // Surface rate-limit errors with a user-friendly message
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After') ?? '60';
+          const tier = errorData.tier ?? 'general';
+          const limit = errorData.limit ?? '?';
+          const window = errorData.window_seconds ?? 60;
+          throw new RateLimitError(
+            `Too many requests (${tier} tier: ${limit} per ${window}s). ` +
+            `Please wait ${retryAfter}s and try again.`,
+            parseInt(retryAfter, 10),
+          );
+        }
+
         throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
 

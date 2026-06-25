@@ -8,7 +8,7 @@ Handles:
 
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
-from .config import DEFAULT_REMINDER_OFFSET_MINUTES
+from .config import settings
 
 
 def create_calendar_event(
@@ -42,7 +42,7 @@ def create_reminder(
 
     if not remind_at:
         remind_time = datetime.now(timezone.utc) + timedelta(
-            minutes=DEFAULT_REMINDER_OFFSET_MINUTES
+            minutes=settings.DEFAULT_REMINDER_OFFSET_MINUTES
         )
         remind_at = remind_time.isoformat()
 
