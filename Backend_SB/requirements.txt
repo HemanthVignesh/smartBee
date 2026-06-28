@@ -16,3 +16,6 @@ alembic            # schema migrations
 
 # Security
 cryptography
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt

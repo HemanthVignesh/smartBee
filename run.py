@@ -7,7 +7,7 @@ import signal
 
 # Get absolute paths of directories
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-BACKEND_DIR = os.path.join(BASE_DIR, "smart_bee_backend_starter")
+BACKEND_DIR = os.path.join(BASE_DIR, "Backend_SB")
 FRONTEND_DIR = os.path.join(BASE_DIR, "Smart Bee Email Interface")
 
 def run():
@@ -20,11 +20,18 @@ def run():
     is_windows = os.name == 'nt'
     has_pnpm = shutil.which("pnpm") is not None
     
+    # Try to find venv in Backend_SB first, then fallback to smart_bee_backend_starter
+    venv_dir = os.path.join(BACKEND_DIR, "venv")
+    if not os.path.exists(venv_dir):
+        fallback_venv = os.path.join(BASE_DIR, "smart_bee_backend_starter", "venv")
+        if os.path.exists(fallback_venv):
+            venv_dir = fallback_venv
+    
     if is_windows:
-        python_bin = os.path.join(BACKEND_DIR, "venv", "Scripts", "python.exe")
+        python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
         npm_cmd = "pnpm.cmd" if has_pnpm else "npm.cmd"
     else:
-        python_bin = os.path.join(BACKEND_DIR, "venv", "bin", "python")
+        python_bin = os.path.join(venv_dir, "bin", "python")
         npm_cmd = "pnpm" if has_pnpm else "npm"
         
     pkg_mgr_name = "pnpm" if has_pnpm else "npm"
@@ -47,7 +54,7 @@ def run():
     # 2.5. Check and Install Python Dependencies
     print("\n📦 Checking Python dependencies...")
     try:
-        pip_bin = os.path.join(BACKEND_DIR, "venv", "bin", "pip") if not is_windows else os.path.join(BACKEND_DIR, "venv", "Scripts", "pip.exe")
+        pip_bin = os.path.join(venv_dir, "bin", "pip") if not is_windows else os.path.join(venv_dir, "Scripts", "pip.exe")
         if os.path.exists(pip_bin):
             print("Installing/updating python-jose, passlib, and cryptography...")
             subprocess.run([pip_bin, "install", "python-jose[cryptography]", "passlib[bcrypt]", "cryptography"], check=True)

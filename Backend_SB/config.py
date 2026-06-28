@@ -2,6 +2,16 @@
 SmartBee — Typed configuration loaded from environment / .env file.
 """
 
+# Monkeypatch importlib.metadata to prevent slow filesystem scanning on macOS
+import importlib.metadata
+
+class MockEntryPoints(tuple):
+    def select(self, *args, **kwargs):
+        return MockEntryPoints()
+
+importlib.metadata.distributions = lambda *args, **kwargs: []
+importlib.metadata.entry_points = lambda *args, **kwargs: MockEntryPoints()
+
 from pathlib import Path
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -25,6 +35,9 @@ class Settings(BaseSettings):
 
     # ── Security ─────────────────────────────────
     SECRET_KEY: str = "change-me-generate-a-real-secret"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # ── Brain thresholds ─────────────────────────
     CONFIDENCE_THRESHOLD_HIGH: float = 0.8

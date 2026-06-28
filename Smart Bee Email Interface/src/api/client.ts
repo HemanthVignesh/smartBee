@@ -77,18 +77,18 @@ export interface FeedbackRequest {
 }
 
 export interface AuthUser {
-  id: string;
+  id: number;
   email: string;
-  name: string | null;
-  picture: string | null;
-  is_active: boolean;
-  created_at: string;
+  display_name: string | null;
+  is_verified: boolean;
 }
 
 // ── API Client Class ──────────────────────────────────────────────────────────
 
 export class SmartBeeAPI {
   private baseURL: string;
+  static getToken: () => string | null = () => null;
+  static refreshToken: (() => Promise<string | null>) | null = null;
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
@@ -96,7 +96,7 @@ export class SmartBeeAPI {
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    const token = getToken();
+    const token = SmartBeeAPI.getToken() || getToken();
 
     try {
       const response = await fetch(url, {
@@ -109,8 +109,25 @@ export class SmartBeeAPI {
         },
       });
 
-      // ── 401 → force logout ────────────────────────────────────────────────
+      // ── 401 → try silent token refresh before force logout ───────────────────
       if (response.status === 401) {
+        if (SmartBeeAPI.refreshToken) {
+          const newToken = await SmartBeeAPI.refreshToken();
+          if (newToken) {
+            // Retry the original request with the fresh token
+            const retryResponse = await fetch(url, {
+              ...options,
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${newToken}`,
+                ...options?.headers,
+              },
+            });
+            if (retryResponse.ok) {
+              return await retryResponse.json();
+            }
+          }
+        }
         handleUnauthorized();
         throw new Error('Session expired — please sign in again.');
       }
